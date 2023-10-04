@@ -1,0 +1,6 @@
+function R = AxAng2RotMat(x,theta)
+% gives associated rotation matrix given rotation axis and angle of rotation
+% x is a unit vector and theta is in radians 
+R = [cos(theta)+x(1)^2*(1-cos(theta)) x(1)*x(2)*(1-cos(theta))-x(3)*sin(theta) x(1)*x(3)*(1-cos(theta))+x(2)*sin(theta);...
+    x(2)*x(1)*(1-cos(theta))+x(3)*sin(theta) cos(theta)+x(2)^2*(1-cos(theta)) x(2)*x(3)*(1-cos(theta))-x(1)*sin(theta);...
+    x(3)*x(1)*(1-cos(theta))-x(2)*sin(theta) x(3)*x(2)*(1-cos(theta))+x(1)*sin(theta) cos(theta)+x(3)^2*(1-cos(theta))];
