@@ -1,5 +1,5 @@
 classdef BladeElement < handle
-    % class for calculating aerodynamic forces on each wing 
+    % class for calculating aerodynamic forces on each wing
     % forces are calculated in the wing-attached frames
     % The right wing frame is obtained by rotating matlab coordinate frame by
     % 180 degrees about its x axis
@@ -14,31 +14,33 @@ classdef BladeElement < handle
     properties
         nElements; % number (n) of blade element strips
         nTimeSteps; % number (N) of time steps in the kinematic waveforms
-        wing_RL; % char 'L' or 'R' 
-        V_airflow_i % nxN matrix of airflow speeds of each strip (rows) at each time step (columns) 
-        alpha_eff_i; % nxN matrix of effective AoA of each strip (rows) at each time step (columns) 
-        
+        wing_RL; % char 'L' or 'R'
+        V_airflow_i % nxN matrix of airflow speeds of each strip (rows) at each time step (columns)
+        alpha_eff_i; % nxN matrix of effective AoA of each strip (rows) at each time step (columns)
+
         % subscript w represents measured in wing frame
         % subscript b represents measured in body frame
-        F_trans_w; % 3xN matrix of total translational aerodynamic force vector 
-        F_transDrag_w; % 3xN matrix of translational drag vector 
-        F_transLift_w; % 3xN matrix of translational lift vector 
-        F_rotat_w; % 3xN matrix of total rotational aerodynamic force vector 
-        F_admas_w; % 3xN matrix of total added-mass aerodynamic force vector 
-        F_total_w; % 3xN matrix of total aerodynamic force vector 
-        M_trans_w; % 3xN matrix of total translational aerodynamic moment vector 
-        M_transDrag_w; % 3xN matrix of translational drag moment vector 
-        M_transLift_w; % 3xN matrix of translational lift moment vector 
-        M_rotat_w; % 3xN matrix of rotational aerodynamic moment vector 
-        M_admas_w; % 3xN matrix of added-mass aerodynamic moment vector 
-        M_total_w; % 3xN matrix of total aerodynamic moment vector 
+        % subscript h represents measured in the body-horizontal frame
+        F_trans_w; % 3xN matrix of total translational aerodynamic force vector
+        F_transDrag_w; % 3xN matrix of translational drag vector
+        F_transLift_w; % 3xN matrix of translational lift vector
+        F_rotat_w; % 3xN matrix of total rotational aerodynamic force vector
+        F_admas_w; % 3xN matrix of total added-mass aerodynamic force vector
+        F_total_w; % 3xN matrix of total aerodynamic force vector
+
+        M_trans_w; % 3xN matrix of total translational aerodynamic moment vector
+        M_transDrag_w; % 3xN matrix of translational drag moment vector
+        M_transLift_w; % 3xN matrix of translational lift moment vector
+        M_rotat_w; % 3xN matrix of rotational aerodynamic moment vector
+        M_admas_w; % 3xN matrix of added-mass aerodynamic moment vector
+        M_total_w; % 3xN matrix of total aerodynamic moment vector
     end
     methods
-        function obj = BladeElement(N,n,wing) 
+        function obj = BladeElement(N,n,wing)
             % constructor
             % N = number of time steps in the kinematic waveforms
             % n = number of blade element strips on a wing
-            % wing is entered as a char 'L' for left wing or 'R' for right wing 
+            % wing is entered as a char 'L' for left wing or 'R' for right wing
             obj.nTimeSteps = N;
             obj.nElements = n;
             obj.wing_RL = wing;
@@ -71,7 +73,7 @@ classdef BladeElement < handle
                 alpha_ddot = obj_kins.alpha_ddot_R(i);
                 b_hat_wing = [cos(alpha);0;-sin(alpha)]; % wing trailing to leading edge vector
                 n_hat_wing = [-sin(alpha);0;-cos(alpha)]; % wing surface normal vector
-                r_i_vect_w = [0*obj_morph.r_i;obj_morph.r_i;0*obj_morph.r_i]; % 3xn matrix of coordinates of wing strip centers 
+                r_i_vect_w = [0*obj_morph.r_i;obj_morph.r_i;0*obj_morph.r_i]; % 3xn matrix of coordinates of wing strip centers
             elseif strcmpi(obj.wing_RL,'L') % if left wing
                 phi = obj_kins.phi_L(i);
                 phi_dot = obj_kins.phi_dot_L(i);
@@ -84,21 +86,20 @@ classdef BladeElement < handle
                 alpha_ddot = obj_kins.alpha_ddot_L(i);
                 b_hat_wing = [-cos(alpha);0;sin(alpha)];
                 n_hat_wing = [sin(alpha);0;cos(alpha)];
-                r_i_vect_w = [0*obj_morph.r_i;-obj_morph.r_i;0*obj_morph.r_i]; % 3xn matrix of coordinates of wing strip centers 
+                r_i_vect_w = [0*obj_morph.r_i;-obj_morph.r_i;0*obj_morph.r_i]; % 3xn matrix of coordinates of wing strip centers
             else
                 error('invalid wing_RL')
             end
             R_b2e = rpyRotMatrix(obj_kins.psi_b(i),obj_kins.chi(i),obj_kins.phi_b(i));
-            R_e2b = R_b2e';
             V_body_e = [obj_kins.u(i);obj_kins.v(i);obj_kins.w(i)]; % body translational velocity in earth frame
-            V_body_b = R_e2b*V_body_e; % body translational velocity vector
+            V_body_b = R_b2e\V_body_e; % body translational velocity vector measured in body frame
             omega_body_b = [obj_kins.p(i);obj_kins.q(i);obj_kins.r(i)]; % body rotational velocity vector
             V_body_w = w2b(phi,theta,obj_kins.beta(i),obj_kins.beta_roll(i),obj_kins.psi_b(i),obj_kins.chi(i),obj_kins.phi_b(i),V_body_b,'inverse',obj.wing_RL); % body translational velocity in wing frame
             omega_body_w = w2b(phi,theta,obj_kins.beta(i),obj_kins.beta_roll(i),obj_kins.psi_b(i),obj_kins.chi(i),obj_kins.phi_b(i),omega_body_b,'inverse',obj.wing_RL); % body rotational velocity in wing frame
-           
+
             %% Calculate relative airflow velocity in the wing frame
             omega_wing_sp = [0; 0; phi_dot] + ...
-                    w2b(phi,0,0,0,0,0,0,[theta_dot; 0; 0],'forwardSP',obj.wing_RL); % wing rotational velocity in stroke plane frame
+                w2b(phi,0,0,0,0,0,0,[theta_dot; 0; 0],'forwardSP',obj.wing_RL); % wing rotational velocity in stroke plane frame
             omega_wing_w = w2b(phi,theta,0,0,0,0,0,omega_wing_sp,'inverseSP',obj.wing_RL); % stroke plane to wing frame
             l1_b = obj_morph.l1*[cos(obj_kins.chi_2(i)-obj_kins.chi(i));0*obj_kins.chi_2(i);-sin(obj_kins.chi_2(i)-obj_kins.chi(i))]; % l1 vector in body frame
             l1_w = w2b(phi,theta,obj_kins.beta(i),obj_kins.beta_roll(i),obj_kins.psi_b(i),obj_kins.chi(i),obj_kins.phi_b(i),l1_b,'inverse',obj.wing_RL); % l1 vector in wing frame
@@ -132,26 +133,17 @@ classdef BladeElement < handle
             CD = 0.0596*sind(alpha_eff_res_i*180/pi).*cosd(alpha_eff_res_i*180/pi) + 3.598*(sind(alpha_eff_res_i*180/pi)).^3;
             CR = pi*(0.75 - obj_morph.d_w./obj_morph.c_i); % d_w is length from the leading edge to the wing pitching axis
 
-            % CL = 1.07597*CL;
-            % CD = 0.66061*CD;
-
-            % CL = 1.74511*CL;
-            % CD = 1.39978*CD;
-            
-            %CL = 1.3489;
-            %CD = 0.73273;
-
             % lift and drag components of translational aerodynamic force
             % magnitudes for each blade element strip at ith time instance
             F_transLift_i = 1/2*obj.rho_air*(obj_morph.l_dr)*obj_morph.c_i.*CL.*(obj.V_airflow_i(:,i).^2)';
             F_transDrag_i = 1/2*obj.rho_air*(obj_morph.l_dr)*obj_morph.c_i.*CD.*(obj.V_airflow_i(:,i).^2)';
-            
+
             % rotational and added-mass aerodynamic force magintudes for
             % all blade element strip at ith time instance
             F_rotat_i = obj.rho_air*(obj_morph.l_dr)*(obj_morph.c_i.^2).*CR.*(obj.V_airflow_i(:,i)')*(alpha_dot - obj_kins.beta_dot(i));
             F_admas_i = (pi/4*obj.rho_air*((phi_ddot*sin(alpha) + phi_dot*(alpha_dot - obj_kins.beta_dot(i))*cos(alpha))*obj_morph.r_i.*(obj_morph.c_i.^2)*obj_morph.l_dr ...
                 + 1/4*obj_morph.l_dr*(alpha_ddot-obj_kins.beta_ddot(i))*(obj_morph.c_i.^3)));
-            
+
             F_trans_i_w = zeros(3,obj.nElements);
             F_transDrag_i_w = zeros(3,obj.nElements);
             F_transLift_i_w = zeros(3,obj.nElements);
@@ -175,11 +167,11 @@ classdef BladeElement < handle
                 FL_hat = FL_hat_i_w(:,j);
                 F_rotat_w_temp = F_rotat_i_w(:,j);
                 F_admas_w_temp = F_admas_i_w(:,j);
-                
+
                 % convert force magnitudes to vectors
                 F_transDrag_temp = F_transDrag_i(j).*FD_hat;
                 F_transLift_temp = F_transLift_i(j).*FL_hat;
-                
+
                 % total translational aerodynamic force
                 F_trans_temp = F_transDrag_temp + F_transLift_temp;
                 F_transDrag_i_w(:,j) = F_transDrag_temp;
@@ -188,7 +180,7 @@ classdef BladeElement < handle
 
                 % moments generated by each force about the body center of mass
                 % translational force assumed to act at the quarter chord point from the leading edge
-                % rotational and added-mass forces assumed to act at the half-chord point from the leading edge 
+                % rotational and added-mass forces assumed to act at the half-chord point from the leading edge
                 moment_arm_q = l1_w + r_i_vect_w(:,j) + b_hat_wing*obj_morph.eps_i_2(j); % moment arm to quarter chord
                 moment_arm_h = l1_w + r_i_vect_w(:,j) + b_hat_wing*obj_morph.eps_i(j); % moment arm to half chord
                 M_trans_i_w(:,j) = cross(moment_arm_q,F_trans_temp);

@@ -2,20 +2,24 @@
 %% principal axis. Also includes transformation to/from stroke plane only
 function v_out = w2b(phi_w,theta_w,beta,beta_roll,psi_b,theta_b,phi_b,v_in,mode,wing)
 % mode is 'forward' or 'inverse' transformation
-% mode is also 'forwardSP' for w2sp and 'inverseSP' for sp2w
+% mode is also 'forwardSP' for w->sp and 'inverseSP' for sp->w.
 % To form R stroke plane, absolute horizontal plane is first pitched 
 % beta radians about -stp_y axis and then rolled by beta_roll radians 
 % about the new x axis.  
 % both stroke plane frames are basically the wing-attached frames but
-% before applying any wing angular movements phi_w and theta_w
+% before applying any wing angular rotations phi_w and theta_w.
 % theta_b is chi body angle
-% wing pitch rotation does not cause wing-attached axes to rotate
+% wing pitch rotation does not cause wing-attached axes to rotate.
 % left wing-attached frame is obtained by rotating right wing-attached
 % frame by 180 degrees about the y axis. Hence additional R2 matrix
 % multiplication for left wing
 % The body-horizontal frame defined as a body-attached frame parallel to 
 % absolute horizontal but rotates with yaw turns. Basically captures 
-% heading direction and vertical force of the moth. 
+% heading direction and vertical force on the moth. 
+% Earth to body-long frame: yaw (phi_b) -> pitch (theta_b) -> roll (psi_b)
+% Stroke-plane to wing frame: yaw (phi_w) -> roll (theta_w)
+% Every rotation is performed about the x, y and z axes of the new frame
+% after the previous rotation
 N = size(v_in,2);
 v_out = zeros(size(v_in));
 phi_w_temp = phi_w;
@@ -48,14 +52,14 @@ for i = 1:N
     R_theta_w = rpyRotMatrix(theta_w_cur,0,0);
     R_phi_w = rpyRotMatrix(0,0,phi_w_cur);
     R_beta = rpyRotMatrix(0,-beta_cur,0);
-    R_beta_roll = rpyRotMatrix(0,beta_roll_cur,0);
+    R_beta_roll = rpyRotMatrix(beta_roll_cur,0,0);
     R_psi_b = rpyRotMatrix(psi_b_cur,0,0);
     R_theta_b = rpyRotMatrix(0,theta_b_cur,0);
     R_phi_b = rpyRotMatrix(0,0,phi_b_cur);
 
     R_w2sp = R_phi_w*R_theta_w; % wing frame to stroke plane frame
-    R_sp2b = (R_psi_b'*R_theta_b'*R_phi_b')*R2*R_beta_roll*R_beta; % stroke plane frame to body-long frame
-    R_sp2bh = (R_phi_b')*R2*R_beta_roll*R_beta; % stroke plane frame to body-horizontal frame
+    R_sp2b = (R_psi_b'*R_theta_b')*R2*R_beta*R_beta_roll; % stroke plane frame to body-long frame
+    R_sp2bh = R2*R_beta*R_beta_roll; % stroke plane frame to body-horizontal frame
 
     if(strcmpi(mode,'forward'))
         R = R_sp2b*R_w2sp;
@@ -69,6 +73,10 @@ for i = 1:N
         R = R_sp2bh*R_w2sp;
     elseif(strcmpi(mode,'inverseBH')) % for just body-horizontal to wing frame
         R = (R_sp2bh*R_w2sp)';
+    elseif(strcmpi(mode,'forwardE')) % for wing to earth frame transformation
+        R = R_phi_b*R_sp2bh*R_w2sp;
+    elseif(strcmpi(mode,'inverseE')) % for earth to wing frame
+        R = (R_phi_b*R_sp2bh*R_w2sp)';
     else
         error('Invalid mode of transformation given in function w2b()');
     end

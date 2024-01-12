@@ -76,7 +76,7 @@ classdef RigidBodyMechanics < handle
                 0 cos(obj_kins.psi_b(obj.i_cur)) -sin(obj_kins.psi_b(obj.i_cur));...
                 0 sin(obj_kins.psi_b(obj.i_cur))*sec(obj_kins.chi(obj.i_cur)) cos(obj_kins.psi_b(obj.i_cur))*sec(obj_kins.chi(obj.i_cur))];
             %%
-            % rigid body system diff equation: X_dot = A_matrix(X) + B_matrix(X)*F_vec(F,G,g);
+            % rigid body system diff equation: X_dot = A_matrix(X)*X + B_matrix(X)*F_vec(F,G,g);
             %%
             % A_matrix is the 12x12 nonlinear time-varying state-transition matrix and is a function of state variables
             % B_matrix is the 12x9 nonlinear time-varying input matrix and is a function of state variables
@@ -86,7 +86,7 @@ classdef RigidBodyMechanics < handle
                 obj.Zero obj.Zero obj.Zero obj.T;...
                 obj.Zero obj.Zero obj.Zero -obj.I_b\Omega_b*obj.I_b]; % state transition matrix
             B_matrix = [obj.Zero obj.Zero obj.Zero;...
-                obj.One/obj_morph.m_t obj.Zero obj.R_b2e';...
+                1/obj_morph.m_t*obj.One obj.Zero obj.R_b2e';...
                 obj.Zero obj.Zero obj.Zero;...
                 obj.Zero obj.I_b\obj.One obj.Zero]; % external force and torque input matrix
 
@@ -117,7 +117,7 @@ classdef RigidBodyMechanics < handle
             % make F_vec
             F_vec = [F0_b;M0_b;obj.g_e];
 
-            dX = obj_kins.dt*(A_matrix*obj.X + B_matrix*F_vec);
+            dX = (A_matrix*obj.X + B_matrix*F_vec)*obj_kins.dt;
             obj.X = obj.X + dX;
             obj = updateKinematics(obj,obj_kins);
             obj.i_cur = obj.i_cur + 1;
@@ -131,6 +131,12 @@ classdef RigidBodyMechanics < handle
             obj_kins.psi_b(obj.i_cur+1) = obj.X(7);
             obj_kins.chi(obj.i_cur+1) = obj.X(8);
             obj_kins.phi_b(obj.i_cur+1) = obj.X(9);
+            obj_kins.p(obj.i_cur+1) = obj.X(10);
+            obj_kins.q(obj.i_cur+1) = obj.X(11);
+            obj_kins.r(obj.i_cur+1) = obj.X(12);
+            obj_kins.beta(obj.i_cur+1) = obj_kins.beta(obj.i_cur) - (obj_kins.chi(obj.i_cur+1) - obj_kins.chi(obj.i_cur));
+            obj_kins.beta_dot(obj.i_cur+1) = (obj_kins.beta(obj.i_cur+1) - obj_kins.beta(obj.i_cur))/obj_kins.dt;
+            obj_kins.beta_ddot(obj.i_cur+1) = (obj_kins.beta_dot(obj.i_cur+1) - obj_kins.beta_dot(obj.i_cur))/obj_kins.dt;
             % update velocities
             obj.R_b2e = rpyRotMatrix(obj_kins.psi_b(obj.i_cur+1),obj_kins.chi(obj.i_cur+1),obj_kins.phi_b(obj.i_cur+1));
             V_b = [obj.X(4);obj.X(5);obj.X(6)];
@@ -138,12 +144,6 @@ classdef RigidBodyMechanics < handle
             obj_kins.u(obj.i_cur+1) = V_e(1);
             obj_kins.v(obj.i_cur+1) = V_e(2);
             obj_kins.w(obj.i_cur+1) = V_e(3);
-            obj_kins.p(obj.i_cur+1) = obj.X(10);
-            obj_kins.q(obj.i_cur+1) = obj.X(11);
-            obj_kins.r(obj.i_cur+1) = obj.X(12);
-            obj_kins.beta(obj.i_cur+1) = obj_kins.beta(obj.i_cur) - (obj_kins.chi(obj.i_cur+1) - obj_kins.chi(obj.i_cur));
-            obj_kins.beta_dot(obj.i_cur+1) = (obj_kins.beta(obj.i_cur+1) - obj_kins.beta(obj.i_cur))/obj_kins.dt;
-            obj_kins.beta_ddot(obj.i_cur+1) = (obj_kins.beta_dot(obj.i_cur+1) - obj_kins.beta_dot(obj.i_cur))/obj_kins.dt;
         end
     end
 end

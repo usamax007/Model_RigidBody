@@ -31,12 +31,14 @@ classdef Morphometrics
         wingCoM_w; % coordinates of wing center of mass in wing frame
     end
     methods
-        function obj = Morphometrics(directory,file,nStrips)
+        function obj = Morphometrics(directory,file,nStrips,dispProgress)
             % import morphological data
             obj.n = nStrips;
             obj.filename = file;
             morphData = importdata(strcat(directory,'\',file), ',', 1);
-            disp(strcat(directory,'\',file))
+            if dispProgress
+                disp(strcat(directory,'\',file))
+            end
             BEinput = morphData.data;
             %%
             % Body and wing morphology

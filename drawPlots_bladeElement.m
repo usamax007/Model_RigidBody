@@ -1,4 +1,4 @@
-function fout = drawPlots_bladeElement(speciesName,obj_kins,obj_morph,obj_BE_L,obj_BE_R)
+function fout = drawPlots_bladeElement(speciesName,obj_kins,obj_morph,obj_BE_L,obj_BE_R,forces_h)
 fout = true;
 F_mean_L_w = mean(obj_BE_L.F_total_w,2);
 F_mean_R_w = mean(obj_BE_R.F_total_w,2);
@@ -111,15 +111,15 @@ xlabel('normalized time per wingstroke');ylabel('Mz (Nm)');
 axis([0 1 -y_max*1.2 y_max*1.2]);
 
 % Plots forces and torques in body-horizontal frame
-F_total_L_h = w2b(obj_kins.phi_L,obj_kins.theta_L,obj_kins.beta,obj_kins.beta_roll,obj_kins.psi_b,obj_kins.chi,obj_kins.phi_b,obj_BE_L.F_total_w,'forwardBH','L');
+F_total_L_h = forces_h.F_total_L_normd_h;
 F_mean_L_h = mean(F_total_L_h,2);
-F_total_R_h = w2b(obj_kins.phi_R,obj_kins.theta_R,obj_kins.beta,obj_kins.beta_roll,obj_kins.psi_b,obj_kins.chi,obj_kins.phi_b,obj_BE_R.F_total_w,'forwardBH','R');
+F_total_R_h = forces_h.F_total_R_normd_h;
 F_mean_R_h = mean(F_total_R_h,2);
-M_total_L_h = w2b(obj_kins.phi_L,obj_kins.theta_L,obj_kins.beta,obj_kins.beta_roll,obj_kins.psi_b,obj_kins.chi,obj_kins.phi_b,obj_BE_L.M_total_w,'forwardBH','L');
+M_total_L_h = forces_h.M_total_L_normd_h;
 M_mean_L_h = mean(M_total_L_h,2);
-M_total_R_h = w2b(obj_kins.phi_R,obj_kins.theta_R,obj_kins.beta,obj_kins.beta_roll,obj_kins.psi_b,obj_kins.chi,obj_kins.phi_b,obj_BE_R.M_total_w,'forwardBH','R');
+M_total_R_h = forces_h.M_total_R_normd_h;
 M_mean_R_h = mean(M_total_R_h,2);
-y_norm_fact = obj_morph.weight;
+y_norm_fact = 1;
 y_max = 1.2*max(max(abs(F_total_L_h/y_norm_fact)));
 figure;
 subplot(231);hold on;
@@ -155,7 +155,7 @@ xlabel('normalized time per wingstroke');ylabel('Fz/weight');
 axis([0 1 -y_max*1.2 y_max*1.2]);
 
 % Plot Moments xyz
-y_norm_fact = obj_morph.weight*obj_morph.r_2;
+y_norm_fact = 1;
 y_max = 1.2*max(max(abs(M_total_L_h/y_norm_fact)));
 subplot(234);hold on;
 plot(obj_kins.t_norm,M_total_L_h(1,:)/y_norm_fact,'b','linewidth',2);
@@ -168,7 +168,7 @@ xlabel('normalized time per wingstroke');ylabel('Mx/(weight*r_2)');
 axis([0 1 -y_max*1.2 y_max*1.2]);
 hold off;
 subplot(235);
-title(strcat("Normalized aerodynamic moment (body horizontal frame) of species ",speciesName," at ",num2str(mean(obj_kins.u))," m/s fore-aft airspeed"));
+title(strcat("Normalized aerodynamic moments (body horizontal frame) of species ",speciesName," at ",num2str(mean(obj_kins.u))," m/s fore-aft airspeed"));
 hold on;
 plot(obj_kins.t_norm,M_total_L_h(2,:)/y_norm_fact,'b','linewidth',2);
 plot(obj_kins.t_norm,M_mean_L_h(2)/y_norm_fact*ones(1,obj_kins.N),'b--','linewidth',1.5,'HandleVisibility','off');

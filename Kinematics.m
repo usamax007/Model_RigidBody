@@ -54,13 +54,15 @@ classdef Kinematics < handle
         r; % body frame yaw rate
     end
     methods
-        function obj = Kinematics(directory,file,n_timeSteps,useTimeVarying)
+        function obj = Kinematics(directory,file,n_timeSteps,useTimeVarying,dispProgress)
             obj.filename = file;
             % load relevant variables from the kinematics file
             load(strcat(directory,'\',file),"f","a_chi","b_chi","a_beta","b_beta","beta_roll",...
                 "a_phi","b_phi","a_theta","b_theta","a_alpha","b_alpha",...
                 "a_u","b_u","a_v","b_v","a_w","b_w");
-            disp(strcat(directory,'\',file));
+            if dispProgress
+                disp(strcat(directory,'\',file));
+            end
             if(~useTimeVarying) % if time-averaged body kinematics
                 % make all fourier coefficients zero for n > 0 to kill the variation
                 a_chi(2:end) = 0*a_chi(2:end);
@@ -74,7 +76,6 @@ classdef Kinematics < handle
                 b_v = 0*b_v;
                 b_w = 0*b_w;
             end
-            %obj.f = f+0.16116;
             obj.f = f;
             obj.N = n_timeSteps;
             obj.T = 1/f; % time period
@@ -133,6 +134,7 @@ classdef Kinematics < handle
             obj.psi_b = 0*chi;
             obj.phi_b = 0*chi;
             obj.chi_2 = chi + pi/6;
+            
             % either tie beta to chi instead
             % obj.beta = mean(beta) + mean(chi) - chi;
             % or use actual beta

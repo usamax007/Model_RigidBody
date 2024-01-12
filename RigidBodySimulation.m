@@ -88,8 +88,8 @@ classdef RigidBodySimulation < handle
             end
         end
         function obj = runSimulation(obj,obj_kins)
-            for i_N = 2:obj_kins.N
-                obj = stepTransformationsReverse(obj,obj_kins,i_N-1);
+            for i_N = 11:10:obj_kins.N
+                obj = stepTransformationsReverse(obj,obj_kins,i_N-10);
                 obj = stepTransformationsForward(obj,obj_kins,i_N);
                 drawnow();
                 if obj.saveVideo
